@@ -26,6 +26,13 @@ var deployApp = !empty(image)
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: acrName, location: location, sku: { name: 'Basic' }, properties: { adminUserEnabled: false }
 }
+resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: '${prefix}-id', location: location
+}
+resource pull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acr, name: guid(acr.id, uami.id, 'acrpull')
+  properties: { principalId: uami.properties.principalId, principalType: 'ServicePrincipal', roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') }
+}
 resource logs 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: '${prefix}-logs', location: location, properties: { sku: { name: 'PerGB2018' }, retentionInDays: 30 }
 }
@@ -52,13 +59,13 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if
   dependsOn: [share]
 }
 resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
-  name: appName, location: location, identity: { type: 'SystemAssigned' }
-  dependsOn: [envStorage]
+  name: appName, location: location, identity: { type: 'UserAssigned', userAssignedIdentities: { '${uami.id}': {} } }
+  dependsOn: [envStorage, pull]
   properties: {
     managedEnvironmentId: env!.id
     configuration: {
       ingress: { external: true, targetPort: 8787, transport: 'auto', allowInsecure: false }
-      registries: [{ server: acr.properties.loginServer, identity: 'system' }]
+      registries: [{ server: acr.properties.loginServer, identity: uami.id }]
       secrets: [{ name: 'token-enc-key', value: tokenEncKey }, { name: 'ms-client-secret', value: empty(msClientSecret) ? 'unset' : msClientSecret }]
     }
     template: {
@@ -81,11 +88,6 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
       volumes: [{ name: 'data', storageType: 'AzureFile', storageName: 'data' }]
     }
   }
-}
-// AcrPull for the app's managed identity
-resource pull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployApp) {
-  scope: acr, name: guid(acr.id, appName, 'acrpull')
-  properties: { principalId: app!.identity.principalId, principalType: 'ServicePrincipal', roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') }
 }
 output acrName string = acr.name
 output url string = !deployApp ? '' : 'https://${appName}.${env!.properties.defaultDomain}'
