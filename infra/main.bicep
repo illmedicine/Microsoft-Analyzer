@@ -4,7 +4,7 @@ targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
 @minLength(3)
-@maxLength(12)
+@maxLength(7)
 param prefix string = 'ma365'
 @description('Container image (set after `az acr build`). Leave empty on the first pass to create only the registry.')
 param image string = ''
@@ -37,12 +37,18 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = if (deployApp) {
   name: saName, location: location, kind: 'StorageV2', sku: { name: 'Standard_LRS' }
   properties: { minimumTlsVersion: 'TLS1_2', allowBlobPublicAccess: false, supportsHttpsTrafficOnly: true }
 }
+resource fileSvc 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = if (deployApp) {
+  parent: sa
+  name: 'default'
+}
 resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = if (deployApp) {
-  name: '${saName}/default/ma365data', properties: { shareQuota: 5 }
+  parent: fileSvc
+  name: 'ma365data'
+  properties: { shareQuota: 5 }
 }
 resource envStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if (deployApp) {
   parent: env, name: 'data'
-  properties: { azureFile: { accountName: saName, accountKey: sa!.listKeys().keys[0].value, shareName: 'ma365data', accessMode: 'ReadWrite' } }
+  properties: { azureFile: { accountName: sa.name, accountKey: sa!.listKeys().keys[0].value, shareName: 'ma365data', accessMode: 'ReadWrite' } }
   dependsOn: [share]
 }
 resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
