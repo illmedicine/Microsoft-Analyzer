@@ -53,8 +53,9 @@ resource envStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if
 }
 resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
   name: appName, location: location, identity: { type: 'SystemAssigned' }
+  dependsOn: [envStorage]
   properties: {
-    managedEnvironmentId: env.id
+    managedEnvironmentId: env!.id
     configuration: {
       ingress: { external: true, targetPort: 8787, transport: 'auto', allowInsecure: false }
       registries: [{ server: acr.properties.loginServer, identity: 'system' }]
