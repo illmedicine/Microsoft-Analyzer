@@ -66,6 +66,22 @@ function Footer() {
   );
 }
 
+function FloatingLogo() {
+  return (
+    <Link to="/" className="float-logo" aria-label="MA-365 home">
+      <span className="float-bob"><i aria-hidden><b /><b /><b /><b /></i></span>
+    </Link>
+  );
+}
+
+function PoweredBy() {
+  return (
+    <a className="powered-by" href="https://illyrobotic-ai.com" target="_blank" rel="noopener noreferrer">
+      Powered by <b>Illy Robotic Instruments</b>
+    </a>
+  );
+}
+
 export function App() {
   const [signIn, setSignIn] = useState(false);
   const loc = useLocation();
@@ -86,6 +102,8 @@ export function App() {
         </Routes>
       </main>
       <Footer />
+      <FloatingLogo />
+      <PoweredBy />
       <SignInDialog open={signIn} onClose={() => setSignIn(false)} />
     </>
   );
