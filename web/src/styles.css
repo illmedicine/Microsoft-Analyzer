@@ -126,3 +126,16 @@ section.block { padding: clamp(56px, 8vw, 128px) 0; }
 table.t { width: 100%; border-collapse: collapse; font-size: 14px; } table.t th, table.t td { padding: 10px 8px; border-bottom: 1px solid #e6e0d1; text-align: left; } table.t th { font-family: var(--label); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; } table.t td.n, table.t th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 3px; background: var(--ink); } .kpi > div { background: var(--paper); padding: 20px; } .kpi b { display: block; font-family: var(--display); font-size: 40px; font-weight: 900; } .kpi span { font-family: var(--label); text-transform: uppercase; letter-spacing: .12em; font-size: 12px; }
 .gate { text-align: center; padding: 56px 24px; } .gate h2 { font-size: 44px; margin-bottom: 12px; }
+
+/* Floating, slowly rotating MA-365 logo + signature badge */
+.float-logo { position: fixed; right: 28px; bottom: 76px; z-index: 40; width: 110px; height: 110px; display: grid; place-items: center; text-decoration: none; filter: drop-shadow(0 12px 18px rgba(0,0,0,.35)); }
+.float-bob { display: block; animation: logo-bob 6s ease-in-out infinite; }
+.float-logo i { display: grid; grid-template-columns: 1fr 1fr; width: 88px; height: 88px; gap: 6px; animation: logo-spin 24s linear infinite; }
+.float-logo i b:nth-child(1){background:var(--mustard)} .float-logo i b:nth-child(2){background:#3b63ff} .float-logo i b:nth-child(3){background:var(--crimson)} .float-logo i b:nth-child(4){background:var(--paper);outline:1px solid rgba(0,0,0,.2)}
+@keyframes logo-spin { to { transform: rotate(360deg); } }
+@keyframes logo-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+.powered-by { position: fixed; right: 16px; bottom: 16px; z-index: 40; background: var(--ink); color: var(--paper); border: 2px solid var(--mustard); padding: 8px 14px; font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; box-shadow: 3px 3px 0 var(--mustard); transition: transform .12s, box-shadow .12s; }
+.powered-by b { color: var(--mustard); font-weight: 700; }
+.powered-by:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--mustard); }
+@media (max-width: 760px) { .float-logo { width: 72px; height: 72px; right: 12px; bottom: 64px; } .float-logo i { width: 56px; height: 56px; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .float-logo i, .float-bob { animation: none; } }
