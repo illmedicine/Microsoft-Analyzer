@@ -4,7 +4,8 @@ const base = (process.argv[2] || "http://localhost:4173/").replace(/\/?$/, "/");
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = []; p.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-  p.on("response", (r) => { if (r.status() >= 400 && r.url().startsWith(base) && !/\/(advisor|terms|explore|licenses|transitions|workspace)$/.test(r.url())) errs.push(`HTTP ${r.status()} ${r.url()}`); });
+  // Page navigations to deep links legitimately return 404 on GitHub Pages (404.html SPA fallback); only flag failed assets/API calls.
+  p.on("response", (r) => { if (r.status() >= 400 && r.request().resourceType() !== "document" && r.url().startsWith(base)) errs.push(`HTTP ${r.status()} ${r.url()}`); });
   const results = []; const step = async (name, fn) => { try { await fn(); results.push(["PASS", name]); } catch (e) { results.push(["FAIL", name + " — " + e.message.split("\n")[0]]); } };
   const go = async (path) => { await p.goto(base + path); await p.waitForLoadState("networkidle"); };
   const see = (t, o = {}) => p.getByText(t, { exact: false }).first().waitFor({ timeout: 8000, ...o });
