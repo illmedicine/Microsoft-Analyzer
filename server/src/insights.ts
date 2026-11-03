@@ -1,6 +1,6 @@
 import { PRODUCTS, productById, productBySku, type Product } from "./knowledge/products.js";
 import { SOURCES } from "./knowledge/sources.js";
-import type { Profile, TenantSnapshot } from "./store.js";
+import type { Profile, TenantSnapshot } from "./types.js";
 
 /**
  * Modeled benchmarks. These are PLACEHOLDER planning assumptions, not measured customer results.

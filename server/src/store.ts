@@ -7,17 +7,8 @@ import { config } from "./config.js";
  * the important part is the *shape*: every piece of customer data hangs off a userId and is
  * only reachable through `scope(userId)`, where userId comes from the verified session, never from the client.
  */
-export interface Profile {
-  orgName?: string; industry?: string; employeeCount?: number;
-  agreementType?: "EA" | "MCA-E" | "CSP" | "MPSA" | "Unknown";
-  renewalDate?: string; annualMicrosoftSpendUsd?: number;
-  primaryCloud?: "azure-first" | "multi-cloud" | "on-prem-heavy" | "m365-only";
-  priorities: string[]; learnings: string[]; // free-text "what we've learned about our org"
-}
-export interface HistoryItem { id: string; kind: "product" | "advisor" | "waste"; label: string; params: unknown; at: string }
-export interface TenantSku { skuId: string; skuPartNumber: string; productId?: string; name: string; purchased: number; assigned: number; suspended: number }
-export interface TenantSnapshot { demo: boolean; tenantId: string; tenantName?: string; syncedAt: string; skus: TenantSku[] }
-export interface TenantLink { tenantId: string; tenantName?: string; refreshTokenSealed?: string; linkedAt: string; demo: boolean }
+import type { Profile, HistoryItem, TenantSku, TenantSnapshot, TenantLink } from "./types.js";
+export type { Profile, HistoryItem, TenantSku, TenantSnapshot, TenantLink } from "./types.js";
 export interface UserRecord {
   id: string; googleSub: string; email: string; name: string; picture?: string; createdAt: string;
   profile: Profile; history: HistoryItem[]; tenant?: TenantLink; snapshot?: TenantSnapshot;

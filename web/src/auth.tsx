@@ -35,7 +35,7 @@ export function GoogleButton({ onDone }: { onDone?: () => void }) {
     const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.onload = init; document.head.appendChild(s);
   }, [cfg?.googleClientId]);
   if (!cfg) return null;
-  if (!cfg.googleClientId && !cfg.devLogin) return <span style={{ fontSize: 12, opacity: 0.7 }}>Google sign-in isn't configured on this server.</span>;
+  if (!cfg.googleClientId && !cfg.devLogin) return <span style={{ fontSize: 12, opacity: 0.7 }}>Sign-in, saved history and tenant connect run on the hosted service. This site is the public, signed-out edition with generic insights.</span>;
   return (
     <div>
       {cfg.googleClientId && <div ref={host} />}

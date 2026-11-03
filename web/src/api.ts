@@ -1,6 +1,20 @@
+import { staticApi } from "./static";
+
 export class ApiError extends Error { constructor(public status: number, public code: string) { super(code); } }
 export const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+/** True when built for GitHub Pages without a backend: the public API runs in the browser. */
+export const STATIC_MODE = import.meta.env.VITE_STATIC === "1";
+const PUBLIC = /^\/(config|me|products|terms|transitions|advisor|waste|fabric-plan)(\/|\?|$)/;
+function local<T>(path: string, init: { method?: string; body?: unknown }): T {
+  try { return staticApi(path, init.method ?? "GET", init.body) as T; }
+  catch (e) { const x = e as { status?: number; code?: string }; throw new ApiError(x.status ?? 500, x.code ?? "error"); }
+}
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  if (STATIC_MODE) return local<T>(path, init);
+  try { return await remote<T>(path, init); }
+  catch (e) { if (!(e instanceof ApiError) && PUBLIC.test(path)) return local<T>(path, init); throw e; } // network failure → local fallback for public features
+}
+async function remote<T>(path: string, init: { method?: string; body?: unknown }): Promise<T> {
   const r = await fetch(`${API_BASE}/api${path}`, {
     method: init.method ?? "GET", credentials: API_BASE ? "include" : "same-origin",
     headers: { "content-type": "application/json", "x-ma365": "1" },

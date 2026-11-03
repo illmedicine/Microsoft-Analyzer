@@ -26,3 +26,7 @@ Repo → Settings → Pages → Source: **GitHub Actions**. Set repo variable `A
 
 ## Knowledge base
 `server/src/knowledge/*` is curated seed data with source links and a `verify` flag. Prices and terms are indicative — validate against Microsoft's published Product Terms / price lists before quoting. Savings/waste benchmarks in `server/src/insights.ts` are illustrative placeholders.
+
+## Static mode & smoke test
+The GitHub Pages build runs the public toolset **in the browser** (same knowledge base and engines as the server, imported from `server/src`) whenever the repo variable `API_BASE_URL` is unset. Sign-in, saved history and tenant data need the hosted service.
+Validate any deployment in a real browser: `NODE_PATH=$(npm root -g) node scripts/smoke.cjs https://illmedicine.github.io/Microsoft-Analyzer/`
