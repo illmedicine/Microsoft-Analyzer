@@ -8,6 +8,7 @@ import { Explore } from "./pages/Explore";
 import { Advisor } from "./pages/Advisor";
 import { Waste } from "./pages/Waste";
 import { Terms } from "./pages/Terms";
+import { Transitions } from "./pages/Transitions";
 import { Workspace } from "./pages/Workspace";
 
 export function SignInDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -40,6 +41,7 @@ function Nav({ onSignIn }: { onSignIn: () => void }) {
           <NavLink to="/explore" className={cls}>Products</NavLink>
           <NavLink to="/advisor" className={cls}>Renewal advisor</NavLink>
           <NavLink to="/licenses" className={cls}>Licence waste</NavLink>
+          <NavLink to="/transitions" className={cls}>Sunsets & Fabric</NavLink>
           <NavLink to="/terms" className={cls}>Contract terms</NavLink>
           {user && <NavLink to="/workspace" className={cls}>My workspace</NavLink>}
         </nav>
@@ -97,6 +99,7 @@ export function App() {
           <Route path="/advisor" element={<Advisor />} />
           <Route path="/licenses" element={<Waste onSignIn={() => setSignIn(true)} />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/transitions" element={<Transitions />} />
           <Route path="/workspace" element={<Workspace onSignIn={() => setSignIn(true)} />} />
           <Route path="*" element={<div className="page"><div className="wrap"><h1>Not found</h1></div></div>} />
         </Routes>

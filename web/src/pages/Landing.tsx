@@ -16,6 +16,7 @@ const HERO_SLIDES: SlideDef[] = [
 const FEATURE_SLIDES: SlideDef[] = [
   { art: "licenses", kicker: "Know every product", title: "Type any licence. Get the full picture.", body: "What it includes, what it overlaps with, where it's usually wasted, and how to negotiate it — for every major Microsoft product.", cta: <Link className="btn gold" to="/explore">Explore products →</Link> },
   { art: "contracts", kicker: "Negotiate", title: "Turn contract jargon into leverage.", body: "Use real Microsoft terms to build a proposal your account team has to take seriously.", cta: <Link className="btn gold" to="/advisor">Open renewal advisor →</Link> },
+  { art: "timeline", kicker: "Sunsets & mergers", title: "Power BI Premium is becoming Fabric. Are you sized for it?", body: "Plan the P→F switch, find the F64 viewer break-even, and avoid signing a 3-year capacity deal at the wrong size.", cta: <Link className="btn gold" to="/transitions?tab=fabric">Plan my migration →</Link> },
   { art: "azure", kicker: "Azure & cloud", title: "Commit to what you'll actually consume.", body: "Size a MACC with defensible forecasts, make Marketplace spend count, claim Hybrid Benefit." },
   { art: "security", kicker: "Walled-off by design", title: "Your tenant. Your account. Nobody else's.", body: "Connect tenant data read-only. It's bound to your authenticated MA-365 account and never shared across organisations.", cta: <Link className="btn gold" to="/workspace">Open my workspace →</Link> },
 ];

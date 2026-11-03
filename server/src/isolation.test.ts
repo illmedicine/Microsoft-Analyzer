@@ -100,3 +100,16 @@ test("advisor + waste engines", async () => {
   const w: any = await (await fetch(`${base}/api/waste`, { method: "POST", headers: H, body: JSON.stringify({ lines: [{ productId: "m365-e5", name: "E5", purchased: 100, assigned: 60 }] }) })).json();
   assert.equal(w.rows[0].unassigned, 40);
 });
+
+test("fabric planner: F64 break-even, sizing and migration risk", async () => {
+  const body = { premiumSku: "P1", viewers: 400, creators: 20, proHeld: 0, peakUtilisationPct: 40, growthPctPerYear: 30, termYears: 3, overlapDays: 14, workspaces: 80, largeModels: 6, gatewayDependent: 10, crossRegion: 4 };
+  const r: any = await (await fetch(`${base}/api/fabric-plan`, { method: "POST", headers: H, body: JSON.stringify(body) })).json();
+  assert.equal(r.equivalentFSku, "F64");
+  const eq = r.scenarios.find((s: any) => s.id === "equivalent"), below = r.scenarios.find((s: any) => s.id === "below-f64");
+  assert.equal(eq.proLicencesNeeded, 20);            // F64+: free viewers, creators still need Pro
+  assert.equal(below.proLicencesNeeded, 420);        // below F64: viewers + creators need Pro
+  assert.ok(r.f64BreakEvenViewers > 0 && r.migration.risk === "high");
+  assert.equal((await fetch(`${base}/api/fabric-plan`, { method: "POST", headers: H, body: JSON.stringify({ premiumSku: "P9" }) })).status, 400);
+  const t: any = await (await fetch(`${base}/api/transitions`)).json();
+  assert.ok(t.transitions.some((x: any) => x.id === "pbi-premium-to-fabric") && t.personalized === false);
+});

@@ -10,7 +10,8 @@ import { tenantRouter } from "./tenant.js";
 import { PRODUCTS, productById, searchProducts } from "./knowledge/products.js";
 import { TERMS, searchTerms } from "./knowledge/terms.js";
 import { SOURCES } from "./knowledge/sources.js";
-import { advise, analyzeWaste, BENCHMARKS, productInsights, snapshotToWasteLines } from "./insights.js";
+import { TRANSITIONS } from "./knowledge/transitions.js";
+import { advise, planFabric, analyzeWaste, BENCHMARKS, productInsights, snapshotToWasteLines } from "./insights.js";
 import { sessions } from "./store.js";
 
 export const app = express();
@@ -57,6 +58,20 @@ app.post("/api/advisor", (q, r) => {
   const p = advisorSchema.safeParse(q.body); if (!p.success) return void r.status(400).json({ error: "invalid_input", issues: p.error.issues });
   if (q.me) q.me.addHistory({ kind: "advisor", label: `${p.data.agreementType} · ${p.data.seats} seats`, params: p.data });
   r.json(advise(p.data));
+});
+app.get("/api/transitions", (q, r) => {
+  const snap = q.me?.user.snapshot; const held = new Set(snap?.skus.map((k) => k.productId).filter(Boolean));
+  r.json({ transitions: TRANSITIONS.map((t) => ({ ...t, affectsYou: held.size ? t.affects.some((a) => held.has(a)) : null })), personalized: held.size > 0 });
+});
+const fabricSchema = z.object({
+  premiumSku: z.enum(["P1", "P2", "P3", "P4", "P5"]), viewers: z.number().int().min(0).max(5e6), creators: z.number().int().min(0).max(5e6), proHeld: z.number().int().min(0).max(5e6),
+  peakUtilisationPct: z.number().min(1).max(100).optional(), growthPctPerYear: z.number().min(0).max(300).optional(), termYears: z.number().int().min(1).max(5).optional(), currentAnnualCostUsd: z.number().min(0).max(1e10).optional(),
+  overlapDays: z.number().int().min(0).max(1000).optional(), workspaces: z.number().int().min(0).max(1e5).optional(), largeModels: z.number().int().min(0).max(1e4).optional(), gatewayDependent: z.number().int().min(0).max(1e4).optional(), crossRegion: z.number().int().min(0).max(1e5).optional(),
+});
+app.post("/api/fabric-plan", (q, r) => {
+  const p = fabricSchema.safeParse(q.body); if (!p.success) return void r.status(400).json({ error: "invalid_input" });
+  if (q.me) q.me.addHistory({ kind: "advisor", label: `Fabric plan · ${p.data.premiumSku}, ${p.data.viewers} viewers`, params: p.data });
+  r.json(planFabric(p.data));
 });
 const wasteSchema = z.object({ lines: z.array(z.object({ productId: z.string().max(60).optional(), name: z.string().max(120), purchased: z.number().int().min(0).max(5e6), assigned: z.number().int().min(0).max(5e6), active: z.number().int().min(0).max(5e6).optional(), unitPriceUsd: z.number().min(0).max(5000).optional() })).max(200) });
 app.post("/api/waste", (q, r) => {

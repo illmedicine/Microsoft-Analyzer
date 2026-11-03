@@ -127,4 +127,52 @@ export function advise(i: AdvisorInput) {
     caveat: "Modeled ranges from planning assumptions — not a quote or a guarantee. Validate against your actual agreement." };
 }
 
+// ---------------------------------------------------------------- Premium -> Fabric planner
+/** Indicative pricing constants. Verify against Microsoft's current Fabric and Power BI pricing before quoting. */
+export const FABRIC = { paygPerCuHourUsd: 0.18, hoursPerMonth: 730, reservedDiscount: 0.41, proUsdPerMonth: 14, freeViewerThresholdCu: 64, targetUtilisation: 0.8, verify: true as const };
+export const F_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
+export const P_TO_F: Record<string, number> = { P1: 64, P2: 128, P3: 256, P4: 512, P5: 1024 };
+export interface FabricInput { premiumSku: "P1" | "P2" | "P3" | "P4" | "P5"; viewers: number; creators: number; proHeld: number; peakUtilisationPct?: number; growthPctPerYear?: number; termYears?: number; currentAnnualCostUsd?: number;
+  overlapDays?: number; workspaces?: number; largeModels?: number; gatewayDependent?: number; crossRegion?: number }
+const nextSize = (cu: number) => F_SIZES.find((s) => s >= cu) ?? F_SIZES[F_SIZES.length - 1]!;
+const monthlyPayg = (cu: number) => cu * FABRIC.paygPerCuHourUsd * FABRIC.hoursPerMonth;
+
+export function planFabric(i: FabricInput) {
+  const years = i.termYears ?? 3, g = (i.growthPctPerYear ?? 20) / 100, peak = (i.peakUtilisationPct ?? 70) / 100;
+  const equiv = P_TO_F[i.premiumSku]!;
+  const needNow = (equiv * peak) / FABRIC.targetUtilisation;
+  const needEnd = needNow * Math.pow(1 + g, Math.max(0, years - 1));
+  const proNeeded = (cu: number) => Math.max(0, (cu >= FABRIC.freeViewerThresholdCu ? i.creators : i.creators + i.viewers) - i.proHeld);
+  const scen = (id: string, label: string, cu: number, note: string) => {
+    const payg = monthlyPayg(cu) * 12, reserved = payg * (1 - FABRIC.reservedDiscount), pro = proNeeded(cu) * FABRIC.proUsdPerMonth * 12;
+    return { id, label, fSku: `F${cu}`, cu, freeViewers: cu >= FABRIC.freeViewerThresholdCu, proLicencesNeeded: proNeeded(cu), annualPaygUsd: Math.round(payg), annualReservedUsd: Math.round(reserved), annualProUsd: Math.round(pro),
+      totalReservedUsd: Math.round(reserved + pro), totalPaygUsd: Math.round(payg + pro), termTotalReservedUsd: Math.round((reserved + pro) * years), note };
+  };
+  const scenarios = [
+    scen("equivalent", `Like-for-like (${i.premiumSku} → F${equiv})`, equiv, "Name-based mapping. Safe on capability, but not necessarily right-sized."),
+    scen("rightsized", "Right-sized for today", nextSize(needNow), `Sized to ${Math.round(peak * 100)}% peak utilisation targeting ${FABRIC.targetUtilisation * 100}% headroom.`),
+    scen("growth", `Right-sized with ${years}-year growth`, nextSize(needEnd), `Includes ${Math.round(g * 100)}%/yr growth. Don't reserve this whole size on day one — reserve the baseline, burst on pay-as-you-go.`),
+  ];
+  const below = F_SIZES.filter((s) => s < FABRIC.freeViewerThresholdCu && s >= 2).pop()!; // F32
+  scenarios.push(scen("below-f64", `Below F64 + Pro for viewers (F${below})`, below, "Only sensible if viewer count is small and usage fits. Every viewer needs Pro."));
+
+  const f64 = monthlyPayg(64) * 12 * (1 - FABRIC.reservedDiscount), f32 = monthlyPayg(below) * 12 * (1 - FABRIC.reservedDiscount);
+  const proYr = FABRIC.proUsdPerMonth * 12;
+  const breakEvenViewers = Math.ceil((f64 - f32) / proYr) + i.proHeld; // viewers above which F64 (free viewers) beats F32 + Pro
+  const best = [...scenarios].sort((a, b) => a.totalReservedUsd - b.totalReservedUsd)[0]!;
+
+  // Migration-window risk: transparent heuristic, not a Microsoft rule.
+  const est = Math.round(10 + (i.workspaces ?? 0) * 0.4 + (i.largeModels ?? 0) * 3 + (i.gatewayDependent ?? 0) * 1.5 + (i.crossRegion ?? 0) * 2);
+  const risk = i.overlapDays == null ? "unknown" : est > i.overlapDays ? "high" : est > i.overlapDays * 0.7 ? "medium" : "low";
+  const warnings: string[] = [];
+  if (risk === "high") warnings.push(`Estimated ${est} days of migration work vs ${i.overlapDays} days of overlap. Ask for a written extension or start Fabric capacity before the renewal date.`);
+  if (i.overlapDays == null) warnings.push("You haven't entered your overlap length. Finding out exactly how many days you get is step one.");
+  if (i.proHeld >= i.viewers + i.creators && i.viewers + i.creators > 0) warnings.push("You already hold Pro licences for everyone — the F64 free-viewer benefit is worth less to you than the price of capacity.");
+  if (equiv >= 64 && i.viewers < 120) warnings.push("Few viewers for an F64+ capacity: check whether the capacity is justified by compute, not by viewer licensing.");
+  return { equivalentFSku: `F${equiv}`, requiredCuNow: Math.round(needNow), requiredCuEndOfTerm: Math.round(needEnd), scenarios, cheapestScenario: best.id, f64BreakEvenViewers: breakEvenViewers,
+    migration: { estimatedDays: est, overlapDays: i.overlapDays ?? null, risk }, warnings,
+    pricing: { ...FABRIC, note: "Indicative constants — confirm against Microsoft's current pricing and your agreement." },
+    caveat: "Modeled estimate from your inputs, not a quote. Size from measured utilisation (Fabric Capacity Metrics app) before committing." };
+}
+
 export { PRODUCTS, productBySku };

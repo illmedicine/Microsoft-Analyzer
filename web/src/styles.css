@@ -139,3 +139,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; } table.t th,
 .powered-by:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--mustard); }
 @media (max-width: 760px) { .float-logo { width: 72px; height: 72px; right: 12px; bottom: 64px; } .float-logo i { width: 56px; height: 56px; gap: 4px; } }
 @media (prefers-reduced-motion: reduce) { .float-logo i, .float-bob { animation: none; } }
+
+/* KPI tiles: keep the figure and its label from overlapping */
+.kpi b { line-height: 1.1; margin-bottom: 8px; overflow-wrap: anywhere; font-size: clamp(28px, 3vw, 40px); }
+.kpi span { display: block; line-height: 1.35; }
