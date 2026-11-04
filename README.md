@@ -30,3 +30,13 @@ Repo → Settings → Pages → Source: **GitHub Actions**. Set repo variable `A
 ## Static mode & smoke test
 The GitHub Pages build runs the public toolset **in the browser** (same knowledge base and engines as the server, imported from `server/src`) whenever the repo variable `API_BASE_URL` is unset. Sign-in, saved history and tenant data need the hosted service.
 Validate any deployment in a real browser: `NODE_PATH=$(npm root -g) node scripts/smoke.cjs https://illmedicine.github.io/Microsoft-Analyzer/`
+
+## Request-to-Release (in-app requests → AI build → live → keep/revert)
+Every screen has **Suggest an improvement** (typed or spoken). A request becomes a GitHub issue; applying the `ai-request` label (the human triage step — automatic in owner mode and for allow-listed product owners) starts `.github/workflows/ai-build.yml`:
+agent implements → **allowlist guard** (`server/src/guard.ts`; auth, tenant isolation, storage, workflows, infra and deps are never auto-changed) → typecheck + tests + build + browser smoke → push to `main` → Pages deploy → **smoke test on the live URL** (auto-revert on failure) → summary ("what changed / what to test") posted back. **Keep** closes the request; **Revert** runs `ai-revert.yml`, which reverts that commit and redeploys.
+
+One-time setup:
+1. Repo secret `ANTHROPIC_API_KEY`.
+2. Pages-only (owner mode): create a fine-grained GitHub token for this repo only (Issues: read & write), paste it into the request box once — it stays in that browser.
+3. Hosted API (optional): set `GITHUB_TOKEN` (same scope), `PRODUCT_OWNER_EMAILS` (comma list; only these get auto-build, everyone else is `needs-triage`) and `REQUESTS_REPO`.
+Validate: `node scripts/smoke.cjs <url>` and `node scripts/smoke-request-flow.cjs <url>` (GitHub mocked).

@@ -10,6 +10,7 @@ import { Waste } from "./pages/Waste";
 import { Terms } from "./pages/Terms";
 import { Transitions } from "./pages/Transitions";
 import { Workspace } from "./pages/Workspace";
+import { RequestBox } from "./components/RequestBox";
 
 export function SignInDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -104,6 +105,7 @@ export function App() {
           <Route path="*" element={<div className="page"><div className="wrap"><h1>Not found</h1></div></div>} />
         </Routes>
       </main>
+      <RequestBox />
       <Footer />
       <FloatingLogo />
       <PoweredBy />

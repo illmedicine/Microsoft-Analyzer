@@ -1,0 +1,58 @@
+name: AI revert (back to the previous state)
+# Triggered by the `revert` label (user said "not what I wanted") or by ai-build when live validation fails.
+on:
+  issues: { types: [labeled] }
+  workflow_dispatch:
+    inputs:
+      issue: { description: Issue number, required: true }
+      reason: { description: Why, required: false }
+permissions: { contents: write, issues: write, actions: write }
+concurrency: { group: ai-main, cancel-in-progress: false }
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  ISSUE: ${{ github.event.issue.number || inputs.issue }}
+  LIVE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+jobs:
+  revert:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'revert'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Trust check
+        if: github.event_name == 'issues'
+        run: |
+          perm=$(gh api "repos/$GH_REPO/collaborators/${{ github.event.sender.login }}/permission" --jq .permission 2>/dev/null || echo none)
+          [[ "$perm" == "admin" || "$perm" == "maintain" || "$perm" == "write" ]] || { gh issue edit "$ISSUE" --remove-label revert || true; exit 1; }
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - name: Revert the request's commit
+        run: |
+          git config user.name "ma365-bot"; git config user.email "ma365-bot@users.noreply.github.com"
+          sha=$(gh api "repos/$GH_REPO/issues/$ISSUE/comments" --paginate --jq '.[].body' | grep -o 'ma365-commit:[0-9a-f]\{7,40\}' | tail -1 | cut -d: -f2)
+          [ -n "$sha" ] || { echo "no commit recorded for request"; exit 1; }
+          git merge-base --is-ancestor "$sha" HEAD || { echo "commit not on main"; exit 1; }
+          if ! git revert --no-edit "$sha"; then
+            git revert --abort || true
+            gh issue comment "$ISSUE" --body "Automatic revert hit a conflict because later changes touch the same code. A maintainer needs to revert \`$sha\` by hand."
+            gh issue edit "$ISSUE" --add-label ai-failed || true
+            exit 1
+          fi
+          npm ci && npm run typecheck && npm test && VITE_BASE=/ VITE_STATIC=1 npm run build -w web
+          git push origin HEAD:main
+      - name: Redeploy and confirm
+        run: |
+          since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run pages.yml --ref main
+          run=""; for i in $(seq 1 30); do
+            run=$(gh run list --workflow pages.yml --branch main --limit 5 --json databaseId,createdAt --jq "[.[] | select(.createdAt >= \"$since\")][0].databaseId // empty")
+            [ -n "$run" ] && break; sleep 5; done
+          [ -n "$run" ] && gh run watch "$run" --exit-status
+      - name: Report
+        run: |
+          { echo "<!-- ma365-summary -->"; echo "### Reverted"; echo "This change has been removed and the site is back to how it was before. ${{ inputs.reason }}"; } > "$RUNNER_TEMP/c.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/c.md"
+          gh issue edit "$ISSUE" --remove-label ai-live --remove-label revert --add-label reverted || true
+          gh issue close "$ISSUE" --reason "not planned" || true

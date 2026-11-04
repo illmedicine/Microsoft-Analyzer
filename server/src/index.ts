@@ -13,6 +13,7 @@ import { SOURCES } from "./knowledge/sources.js";
 import { TRANSITIONS } from "./knowledge/transitions.js";
 import { advise, planFabric, analyzeWaste, BENCHMARKS, productInsights, snapshotToWasteLines } from "./insights.js";
 import { sessions } from "./store.js";
+import { requestsRouter } from "./requests.js";
 
 export const app = express();
 app.disable("x-powered-by");
@@ -104,6 +105,7 @@ app.get("/api/tenant-waste", requireAuth, (q, r) => {
 });
 app.delete("/api/account", requireAuth, (q, r) => { q.me!.deleteAccount(); clearSessionCookie(r); r.json({ ok: true }); });
 app.use("/api/tenant", tenantRouter);
+app.use("/api/requests", requestsRouter);
 app.use("/api", (_q, r) => r.status(404).json({ error: "not_found" }));
 
 app.get("/healthz", (_q, r) => void r.type("text").send("ok"));

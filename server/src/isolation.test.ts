@@ -4,6 +4,7 @@ import fs from "node:fs"; import os from "node:os"; import path from "node:path"
 import type { Server } from "node:http";
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ma365-"));
+delete process.env.GITHUB_TOKEN; delete process.env.GH_TOKEN; // tests must never reach a real GitHub repo
 process.env.DATA_DIR = dir; process.env.ALLOW_DEV_LOGIN = "1"; process.env.PUBLIC_URL = "http://localhost:5173";
 process.env.MS_CLIENT_ID = "x"; process.env.MS_CLIENT_SECRET = "y";
 
@@ -112,4 +113,10 @@ test("fabric planner: F64 break-even, sizing and migration risk", async () => {
   assert.equal((await fetch(`${base}/api/fabric-plan`, { method: "POST", headers: H, body: JSON.stringify({ premiumSku: "P9" }) })).status, 400);
   const t: any = await (await fetch(`${base}/api/transitions`)).json();
   assert.ok(t.transitions.some((x: any) => x.id === "pbi-premium-to-fabric") && t.personalized === false);
+});
+
+test("request API: sign-in required; disabled without GitHub token; no cross-user access path", async () => {
+  assert.equal((await fetch(`${base}/api/requests/1`)).status, 401);
+  const a = await login("j@orga.com");
+  assert.equal((await api(a, "/api/requests", { method: "POST", body: JSON.stringify({ text: "I need to share the analysis with procurement", ctx: { route: "/advisor" } }) })).status, 503);
 });
